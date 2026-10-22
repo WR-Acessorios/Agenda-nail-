@@ -383,7 +383,6 @@
 </div>
 
 <script>
-    // Inicialização de datas no fuso horário do usuário
     function getTodayString() {
         const d = new Date();
         const year = d.getFullYear();
@@ -507,6 +506,24 @@
         const mFim = totalMinutosFim % 60;
         const horaFim = `${String(hFim).padStart(2, '0')}:${String(mFim).padStart(2, '0')}`;
 
+        // Checagem de Conflito de Horário
+        const conflito = agendamentos.find(item => {
+            if (item.data !== data) return false;
+            
+            const [hItemIni, mItemIni] = item.horaInicio.split(':').map(Number);
+            const [hItemFim, mItemFim] = item.horaFim.split(':').map(Number);
+            const itemMinInicio = hItemIni * 60 + mItemIni;
+            const itemMinFim = hItemFim * 60 + mItemFim;
+
+            // Verifica se há qualquer sobreposição entre os intervalos [totalMinutosInicio, totalMinutosFim] e [itemMinInicio, itemMinFim]
+            return (totalMinutosInicio < itemMinFim && totalMinutosFim > itemMinInicio);
+        });
+
+        if (conflito) {
+            alert(`⚠️ Horário Indisponível!\n\nJá existe um agendamento para "${conflito.cliente}" (${conflito.nomeServico}) das ${conflito.horaInicio} às ${conflito.horaFim}.`);
+            return;
+        }
+
         const novoAgendamento = {
             id: Date.now(),
             cliente,
@@ -520,7 +537,6 @@
         agendamentos.push(novoAgendamento);
         salvarEAtualizar();
         
-        // Mudar o filtro para o dia agendado para visualizar imediatamente
         document.getElementById('filtroData').value = data;
         renderizar();
 

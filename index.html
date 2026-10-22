@@ -63,7 +63,6 @@
             font-size: 0.9rem;
         }
 
-        /* Menu Lateral (Drawer) */
         .drawer-overlay {
             position: fixed;
             top: 0;
@@ -317,7 +316,6 @@
         <button type="button" class="btn-menu" onclick="toggleDrawer(true)">⚙️ Painel</button>
     </header>
 
-    <!-- Menu Lateral (Drawer) -->
     <div class="drawer-overlay" id="drawerOverlay" onclick="fecharFora(event)">
         <div class="drawer">
             <div class="drawer-header">
@@ -325,7 +323,6 @@
                 <button type="button" class="btn-close" onclick="toggleDrawer(false)">✕</button>
             </div>
             
-            <!-- Seção 1: Serviços -->
             <div class="drawer-section-title">💅 Gerenciar Serviços</div>
 
             <form id="formServico">
@@ -352,7 +349,6 @@
                 </div>
             </div>
 
-            <!-- Seção 2: Resumo Financeiro Geral -->
             <div class="drawer-section-title">💰 Resumo Financeiro Geral</div>
 
             <div class="summary-row" style="margin-bottom: 0.5rem;">
@@ -379,7 +375,6 @@
         </div>
     </div>
 
-    <!-- Novo Agendamento -->
     <section class="card">
         <h2>Novo Agendamento</h2>
         <form id="formAgendamento">
@@ -410,7 +405,6 @@
         </form>
     </section>
 
-    <!-- Resumo do Dia e Navegação -->
     <section class="card">
         <h2>Resumo Diário e Navegação</h2>
         <div class="form-group" style="margin-bottom: 1rem;">
@@ -433,7 +427,6 @@
         </div>
     </section>
 
-    <!-- Backup de Dados -->
     <section class="card">
         <h2>Backup de Dados</h2>
         <div class="backup-actions">
@@ -484,7 +477,6 @@
         }
     }
 
-    // Cadastrar serviço
     const formServico = document.getElementById('formServico');
     formServico.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -536,12 +528,9 @@
         });
     }
 
-    // Renderizar o Resumo Financeiro Geral no Drawer
     function renderizarFinanceiroGeral() {
         let totalFaturado = 0;
         let totalAtendimentos = agendamentos.length;
-
-        // Agrupamento de ganhos por serviço
         const resumoPorServico = {};
 
         agendamentos.forEach(a => {
@@ -569,214 +558,4 @@
             return;
         }
 
-        chaves.forEach(nomeServico => {
-            const item = resumoPorServico[nomeServico];
-            const div = document.createElement('div');
-            div.style.cssText = "background: var(--bg-color); padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;";
-            div.innerHTML = `
-                <div>
-                    <strong>${nomeServico}</strong><br>
-                    <span style="color:var(--text-muted);">${item.qtd} atendimento(s)</span>
-                </div>
-                <div style="font-weight: bold; color: var(--success);">
-                    R$ ${item.total.toFixed(2)}
-                </div>
-            `;
-            container.appendChild(div);
-        });
-    }
-
-    function atualizarSelectServicos() {
-        const select = document.getElementById('servicoSelect');
-        select.innerHTML = '<option value="" disabled selected>Selecione um serviço...</option>';
-        servicos.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s.id;
-            opt.textContent = `${s.nome} (${s.duracao} min) - R$ ${s.valor.toFixed(2)}`;
-            select.appendChild(opt);
-        });
-    }
-
-    // Gravar Agendamento
-    const formAgendamento = document.getElementById('formAgendamento');
-    formAgendamento.addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const cliente = document.getElementById('nomeCliente').value.trim();
-        const data = document.getElementById('dataAgenda').value;
-        const horaInicio = document.getElementById('horaInicio').value;
-        const servicoId = parseInt(document.getElementById('servicoSelect').value);
-
-        const servicoEscolhido = servicos.find(s => s.id === servicoId);
-        if (!servicoEscolhido) {
-            alert("Selecione um serviço válido.");
-            return;
-        }
-
-        const [hIni, mIni] = horaInicio.split(':').map(Number);
-        const totalMinutosInicio = hIni * 60 + mIni;
-        const totalMinutosFim = totalMinutosInicio + servicoEscolhido.duracao;
-        
-        const hFim = Math.floor(totalMinutosFim / 60) % 24;
-        const mFim = totalMinutosFim % 60;
-        const horaFim = `${String(hFim).padStart(2, '0')}:${String(mFim).padStart(2, '0')}`;
-
-        // Checagem de Conflito
-        const conflito = agendamentos.find(item => {
-            if (item.data !== data) return false;
-            
-            const [hItemIni, mItemIni] = item.horaInicio.split(':').map(Number);
-            const [hItemFim, mItemFim] = item.horaFim.split(':').map(Number);
-            const itemMinInicio = hItemIni * 60 + mItemIni;
-            const itemMinFim = hItemFim * 60 + mItemFim;
-
-            return (totalMinutosInicio < itemMinFim && totalMinutosFim > itemMinInicio);
-        });
-
-        if (conflito) {
-            alert(`⚠️ Horário Indisponível!\n\nJá existe um agendamento para "${conflito.cliente}" (${conflito.nomeServico}) das ${conflito.horaInicio} às ${conflito.horaFim}.`);
-            return;
-        }
-
-        const novoAgendamento = {
-            id: Date.now(),
-            cliente,
-            data,
-            horaInicio,
-            horaFim,
-            nomeServico: servicoEscolhido.nome,
-            valor: servicoEscolhido.valor
-        };
-
-        agendamentos.push(novoAgendamento);
-        salvarEAtualizar();
-        
-        document.getElementById('filtroData').value = data;
-        renderizar();
-
-        document.getElementById('nomeCliente').value = '';
-        document.getElementById('horaInicio').value = '';
-        document.getElementById('servicoSelect').selectedIndex = 0;
-    });
-
-    function salvarEAtualizar() {
-        localStorage.setItem('nail_agendamentos', JSON.stringify(agendamentos));
-        renderizar();
-        renderizarFinanceiroGeral();
-    }
-
-    function deletarAgendamento(id) {
-        if(confirm("Deseja cancelar/excluir este agendamento?")) {
-            agendamentos = agendamentos.filter(a => a.id !== id);
-            salvarEAtualizar();
-        }
-    }
-
-    function formatarDataExtenso(dataIso) {
-        const [ano, mes, dia] = dataIso.split('-').map(Number);
-        const dataObj = new Date(ano, mes - 1, dia);
-        const diasSemana = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-        const diaSemanaStr = diasSemana[dataObj.getDay()];
-        return `${diaSemanaStr}, ${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`;
-    }
-
-    function enviarWhatsApp(cliente, servico, dataIso, horaInicio, horaFim) {
-        const dataFormatada = formatarDataExtenso(dataIso);
-        const mensagem = `Olá, ${cliente}! Passando para lembrar do seu agendamento de *${servico}* aqui no estúdio.\n\n📅 ${dataFormatada}\n⏰ Horário: das ${horaInicio} às ${horaFim}\n\nTe espero lá! ✨`;
-        const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
-        window.open(url, '_blank');
-    }
-
-    function renderizar() {
-        const dataFiltro = document.getElementById('filtroData').value;
-        const lista = document.getElementById('listaAgenda');
-        lista.innerHTML = '';
-
-        const filtrados = agendamentos.filter(a => a.data === dataFiltro);
-        filtrados.sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
-
-        let faturamentoDia = 0;
-
-        filtrados.forEach(item => {
-            faturamentoDia += item.valor;
-            const dataFormatada = formatarDataExtenso(item.data);
-
-            const div = document.createElement('div');
-            div.className = 'agenda-item';
-            div.innerHTML = `
-                <div class="agenda-info">
-                    <strong>${item.cliente}</strong>
-                    <span>${item.nomeServico}</span>
-                    <span style="color: var(--accent); margin-top:0.2rem;">${dataFormatada} (${item.horaInicio} → ${item.horaFim})</span>
-                </div>
-                <div style="text-align: right;">
-                    <div class="agenda-price">R$ ${item.valor.toFixed(2)}</div>
-                    <div class="action-buttons">
-                        <button type="button" class="btn-zap" onclick="enviarWhatsApp('${item.cliente}', '${item.nomeServico}', '${item.data}', '${item.horaInicio}', '${item.horaFim}')">📲 WhatsApp</button>
-                        <button type="button" class="btn-delete" onclick="deletarAgendamento(${item.id})">❌ Cancelar</button>
-                    </div>
-                </div>
-            `;
-            lista.appendChild(div);
-        });
-
-        if (filtrados.length === 0) {
-            lista.innerHTML = `<p style="text-align:center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;">Nenhum agendamento para este dia.</p>`;
-        }
-
-        document.getElementById('totalQtd').innerText = filtrados.length;
-        document.getElementById('totalFaturamento').innerText = `R$ ${faturamentoDia.toFixed(2)}`;
-    }
-
-    function exportarBackup() {
-        if (agendamentos.length === 0 && servicos.length === 0) {
-            alert("Não há dados para exportar.");
-            return;
-        }
-        const dadosExportar = { servicos, agendamentos };
-        const jsonStr = JSON.stringify(dadosExportar, null, 2);
-        const blob = new Blob([jsonStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `backup_agenda_nail_${getTodayString()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 100);
-    }
-
-    function importarBackup(event) {
-        const fileReader = new FileReader();
-        fileReader.onload = function(e) {
-            try {
-                const dadosImportados = JSON.parse(e.target.result);
-                if (dadosImportados.agendamentos && dadosImportados.servicos) {
-                    if (confirm("Isso vai substituir os dados atuais. Deseja continuar?")) {
-                        agendamentos = dadosImportados.agendamentos;
-                        servicos = dadosImportados.servicos;
-                        localStorage.setItem('nail_servicos', JSON.stringify(servicos));
-                        salvarEAtualizar();
-                        atualizarSelectServicos();
-                        renderizarServicosDrawer();
-                        alert("Backup importado com sucesso!");
-                    }
-                } else {
-                    alert("Arquivo de backup inválido.");
-                }
-            } catch (err) {
-                alert("Erro ao ler o arquivo JSON.");
-            }
-        };
-        if(event.target.files[0]) {
-            fileReader.readAsText(event.target.files[0]);
-        }
-    }
-
-    atualizarSelectServicos();
-    renderizar();
-</script>
-</body>
-</html>
+        chaves.forEach(nome

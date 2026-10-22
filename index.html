@@ -15,6 +15,7 @@
             --border: #2e244d;
             --success: #10b981;
             --danger: #ef4444;
+            --whatsapp: #25d366;
         }
 
         * {
@@ -223,7 +224,7 @@
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
-            max-height: 320px;
+            max-height: 350px;
             overflow-y: auto;
         }
 
@@ -252,7 +253,30 @@
             text-align: right;
             font-weight: bold;
             color: var(--success);
-            font-size: 1rem;
+            font-size: 0.95rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.4rem;
+            justify-content: flex-end;
+        }
+
+        .btn-zap {
+            background-color: var(--whatsapp);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: bold;
+            width: auto;
+        }
+
+        .btn-zap:hover {
+            opacity: 0.9;
         }
 
         .btn-delete {
@@ -260,9 +284,9 @@
             border: none;
             color: var(--danger);
             cursor: pointer;
-            font-size: 0.8rem;
-            padding: 0.2rem;
-            margin-top: 0.2rem;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.4rem;
+            width: auto;
         }
 
         .backup-actions {
@@ -273,6 +297,16 @@
         #fileInput {
             display: none;
         }
+
+        .drawer-section-title {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 0.5rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px dashed var(--border);
+        }
     </style>
 </head>
 <body>
@@ -280,17 +314,20 @@
 <div class="container">
     <header>
         <h1>✨ Agenda Nail Designer</h1>
-        <button type="button" class="btn-menu" onclick="toggleDrawer(true)">⚙️ Serviços</button>
+        <button type="button" class="btn-menu" onclick="toggleDrawer(true)">⚙️ Painel</button>
     </header>
 
     <!-- Menu Lateral (Drawer) -->
     <div class="drawer-overlay" id="drawerOverlay" onclick="fecharFora(event)">
         <div class="drawer">
             <div class="drawer-header">
-                <h2>Gerenciar Serviços</h2>
+                <h2>Painel do Sistema</h2>
                 <button type="button" class="btn-close" onclick="toggleDrawer(false)">✕</button>
             </div>
             
+            <!-- Seção 1: Serviços -->
+            <div class="drawer-section-title">💅 Gerenciar Serviços</div>
+
             <form id="formServico">
                 <div class="form-group">
                     <label for="nomeServicoInput">Nome do Serviço</label>
@@ -309,9 +346,34 @@
                 <button type="submit">Cadastrar Serviço</button>
             </form>
 
-            <div style="margin-top: 1rem;">
-                <h3 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">Serviços Cadastrados:</h3>
-                <div id="listaServicosDrawer" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 250px; overflow-y: auto;">
+            <div>
+                <h3 style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Serviços Cadastrados:</h3>
+                <div id="listaServicosDrawer" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 180px; overflow-y: auto;">
+                </div>
+            </div>
+
+            <!-- Seção 2: Resumo Financeiro Geral -->
+            <div class="drawer-section-title">💰 Resumo Financeiro Geral</div>
+
+            <div class="summary-row" style="margin-bottom: 0.5rem;">
+                <div class="summary-box highlight">
+                    <div class="lbl">Faturamento Total</div>
+                    <div class="val" id="finTotalGeral">R$ 0,00</div>
+                </div>
+                <div class="summary-box">
+                    <div class="lbl">Total Atendimentos</div>
+                    <div class="val" id="finQtdGeral">0</div>
+                </div>
+            </div>
+
+            <div class="summary-box" style="margin-bottom: 0.75rem;">
+                <div class="lbl">Ticket Médio por Atendimento</div>
+                <div class="val" id="finTicketMedio" style="color: var(--accent);">R$ 0,00</div>
+            </div>
+
+            <div>
+                <h3 style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Faturamento por Serviço:</h3>
+                <div id="listaFinanceiroServicos" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto;">
                 </div>
             </div>
         </div>
@@ -410,6 +472,7 @@
         if (abrir) {
             overlay.classList.add('open');
             renderizarServicosDrawer();
+            renderizarFinanceiroGeral();
         } else {
             overlay.classList.remove('open');
         }
@@ -437,6 +500,7 @@
         formServico.reset();
         atualizarSelectServicos();
         renderizarServicosDrawer();
+        renderizarFinanceiroGeral();
     });
 
     function deletarServico(id) {
@@ -445,6 +509,7 @@
             localStorage.setItem('nail_servicos', JSON.stringify(servicos));
             atualizarSelectServicos();
             renderizarServicosDrawer();
+            renderizarFinanceiroGeral();
         }
     }
 
@@ -466,6 +531,56 @@
                     <span style="color:var(--text-muted);">${s.duracao} min - R$ ${s.valor.toFixed(2)}</span>
                 </div>
                 <button type="button" onclick="deletarServico(${s.id})" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:1rem; width:auto; padding:0;">🗑️</button>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    // Renderizar o Resumo Financeiro Geral no Drawer
+    function renderizarFinanceiroGeral() {
+        let totalFaturado = 0;
+        let totalAtendimentos = agendamentos.length;
+
+        // Agrupamento de ganhos por serviço
+        const resumoPorServico = {};
+
+        agendamentos.forEach(a => {
+            totalFaturado += a.valor;
+
+            if (!resumoPorServico[a.nomeServico]) {
+                resumoPorServico[a.nomeServico] = { qtd: 0, total: 0 };
+            }
+            resumoPorServico[a.nomeServico].qtd += 1;
+            resumoPorServico[a.nomeServico].total += a.valor;
+        });
+
+        const ticketMedio = totalAtendimentos > 0 ? (totalFaturado / totalAtendimentos) : 0;
+
+        document.getElementById('finTotalGeral').innerText = `R$ ${totalFaturado.toFixed(2)}`;
+        document.getElementById('finQtdGeral').innerText = totalAtendimentos;
+        document.getElementById('finTicketMedio').innerText = `R$ ${ticketMedio.toFixed(2)}`;
+
+        const container = document.getElementById('listaFinanceiroServicos');
+        container.innerHTML = '';
+
+        const chaves = Object.keys(resumoPorServico);
+        if (chaves.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem;">Sem dados financeiros registrados.</p>';
+            return;
+        }
+
+        chaves.forEach(nomeServico => {
+            const item = resumoPorServico[nomeServico];
+            const div = document.createElement('div');
+            div.style.cssText = "background: var(--bg-color); padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;";
+            div.innerHTML = `
+                <div>
+                    <strong>${nomeServico}</strong><br>
+                    <span style="color:var(--text-muted);">${item.qtd} atendimento(s)</span>
+                </div>
+                <div style="font-weight: bold; color: var(--success);">
+                    R$ ${item.total.toFixed(2)}
+                </div>
             `;
             container.appendChild(div);
         });
@@ -506,7 +621,7 @@
         const mFim = totalMinutosFim % 60;
         const horaFim = `${String(hFim).padStart(2, '0')}:${String(mFim).padStart(2, '0')}`;
 
-        // Checagem de Conflito de Horário
+        // Checagem de Conflito
         const conflito = agendamentos.find(item => {
             if (item.data !== data) return false;
             
@@ -515,7 +630,6 @@
             const itemMinInicio = hItemIni * 60 + mItemIni;
             const itemMinFim = hItemFim * 60 + mItemFim;
 
-            // Verifica se há qualquer sobreposição entre os intervalos [totalMinutosInicio, totalMinutosFim] e [itemMinInicio, itemMinFim]
             return (totalMinutosInicio < itemMinFim && totalMinutosFim > itemMinInicio);
         });
 
@@ -548,6 +662,7 @@
     function salvarEAtualizar() {
         localStorage.setItem('nail_agendamentos', JSON.stringify(agendamentos));
         renderizar();
+        renderizarFinanceiroGeral();
     }
 
     function deletarAgendamento(id) {
@@ -563,6 +678,13 @@
         const diasSemana = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
         const diaSemanaStr = diasSemana[dataObj.getDay()];
         return `${diaSemanaStr}, ${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`;
+    }
+
+    function enviarWhatsApp(cliente, servico, dataIso, horaInicio, horaFim) {
+        const dataFormatada = formatarDataExtenso(dataIso);
+        const mensagem = `Olá, ${cliente}! Passando para lembrar do seu agendamento de *${servico}* aqui no estúdio.\n\n📅 ${dataFormatada}\n⏰ Horário: das ${horaInicio} às ${horaFim}\n\nTe espero lá! ✨`;
+        const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
+        window.open(url, '_blank');
     }
 
     function renderizar() {
@@ -589,7 +711,10 @@
                 </div>
                 <div style="text-align: right;">
                     <div class="agenda-price">R$ ${item.valor.toFixed(2)}</div>
-                    <button type="button" class="btn-delete" onclick="deletarAgendamento(${item.id})">❌ Cancelar</button>
+                    <div class="action-buttons">
+                        <button type="button" class="btn-zap" onclick="enviarWhatsApp('${item.cliente}', '${item.nomeServico}', '${item.data}', '${item.horaInicio}', '${item.horaFim}')">📲 WhatsApp</button>
+                        <button type="button" class="btn-delete" onclick="deletarAgendamento(${item.id})">❌ Cancelar</button>
+                    </div>
                 </div>
             `;
             lista.appendChild(div);
